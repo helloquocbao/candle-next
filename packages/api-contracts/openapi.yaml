@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Crypto Predictor API
+  version: 1.0.0
+  description: >
+    Nguồn chân lý (source of truth) cho REST API giữa frontend và api-gateway.
+    Team backend đổi implementation không được đổi contract này mà không
+    bump version + thông báo team frontend.
+paths:
+  /api/v1/klines:
+    get:
+      summary: Lấy lịch sử nến
+      parameters:
+        - { name: symbol, in: query, required: true, schema: { type: string } }
+        - { name: interval, in: query, required: true, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 500 } }
+      responses:
+        "200": { description: OK }
+  /api/v1/predictions/latest:
+    get:
+      summary: >
+        Lấy toàn bộ dự đoán còn hiệu lực (target_time >= now) cho
+        symbol+interval — mỗi chu kỳ prediction-engine sinh PREDICTION_HORIZON
+        dự đoán liên tiếp (multi-step forecast), không chỉ 1.
+      parameters:
+        - { name: symbol, in: query, required: true, schema: { type: string } }
+        - { name: interval, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol: { type: string }
+                  interval: { type: string }
+                  predictions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        target_time: { type: string, format: date-time }
+                        predicted_open: { type: number }
+                        predicted_high: { type: number }
+                        predicted_low: { type: number }
+                        predicted_close: { type: number }
+                        confidence: { type: number }
+                        model_version: { type: string }
+  /api/v1/accuracy:
+    get:
+      summary: Thống kê độ chính xác
+      parameters:
+        - { name: symbol, in: query, required: true, schema: { type: string } }
+        - { name: range, in: query, schema: { type: string, default: 24h } }
+        - name: interval
+          in: query
+          description: >
+            Lọc theo khung thời gian (1m/1h/1d/1w/1M). Không truyền -> gộp
+            accuracy của mọi interval cùng symbol (tương thích ngược).
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /api/v1/symbols:
+    get:
+      summary: Danh sách cặp coin đang được hệ thống theo dõi (bảng tracked_pairs)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }

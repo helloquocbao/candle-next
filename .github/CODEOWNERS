@@ -1,0 +1,14 @@
+# Ranh giới ownership theo team. Đổi tên team cho khớp GitHub team thật khi tách nhóm.
+# Ai đụng vào thư mục nào thì PR bắt buộc được review bởi team sở hữu thư mục đó.
+
+/apps/frontend/            @team-frontend
+/apps/api-gateway/         @team-backend
+/apps/ingestion-service/   @team-backend
+/apps/prediction-engine/   @team-ml
+
+/packages/shared-types/    @team-platform
+/packages/api-contracts/   @team-platform
+/packages/utils/           @team-platform
+
+/infra/                    @team-platform
+/.github/                  @team-platform

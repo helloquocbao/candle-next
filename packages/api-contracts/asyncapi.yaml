@@ -1,0 +1,85 @@
+asyncapi: 3.0.0
+info:
+  title: Crypto Predictor WebSocket Events
+  version: 1.0.0
+  description: >
+    Nguồn chân lý cho message WebSocket giữa frontend và api-gateway.
+channels:
+  subscribe:
+    messages:
+      subscribeRequest:
+        payload:
+          type: object
+          properties:
+            action: { type: string, enum: [subscribe] }
+            symbol: { type: string }
+            interval: { type: string }
+  unsubscribe:
+    messages:
+      unsubscribeRequest:
+        payload:
+          type: object
+          properties:
+            action: { type: string, enum: [unsubscribe] }
+            symbol: { type: string }
+            interval: { type: string }
+      unsubscribed:
+        payload:
+          type: object
+          properties:
+            type: { type: string, enum: [unsubscribed] }
+            data:
+              type: object
+              properties:
+                symbol: { type: string }
+                interval: { type: string }
+  heartbeat:
+    messages:
+      pingRequest:
+        payload:
+          type: object
+          properties:
+            action: { type: string, enum: [ping] }
+      pong:
+        payload:
+          type: object
+          properties:
+            type: { type: string, enum: [pong] }
+  kline:
+    messages:
+      klineUpdate:
+        payload: { type: object }
+  prediction:
+    messages:
+      predictionUpdate:
+        payload:
+          type: object
+          properties:
+            type: { type: string, enum: [prediction] }
+            data:
+              type: object
+              description: >
+                "predictions" là mảng N dự đoán liên tiếp (multi-step
+                forecast, mặc định N=10 — xem PREDICTION_HORIZON), sắp theo
+                thứ tự từ gần nhất (t+1) đến xa nhất (t+N). Chỉ phần tử đầu
+                tiên (t+1) được đánh giá % chính xác (accuracy_update) — các
+                phần tử còn lại chỉ mang tính tham khảo xu hướng.
+              properties:
+                symbol: { type: string }
+                interval: { type: string }
+                predictions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      target_time: { type: string, format: date-time }
+                      predicted_open: { type: number }
+                      predicted_high: { type: number }
+                      predicted_low: { type: number }
+                      predicted_close: { type: number }
+                      confidence: { type: number }
+                      model_version: { type: string }
+  accuracy:
+    messages:
+      accuracyUpdate:
+        payload: { type: object }

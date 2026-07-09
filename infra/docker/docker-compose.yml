@@ -1,0 +1,230 @@
+version: "3.9"
+
+# =============================================================================
+# Ghi chú kiến trúc (xem project_technical_spec.md mục 7.1):
+#
+# - Mỗi service backend (ingestion, prediction, api) build từ Dockerfile riêng
+#   nằm trong apps/<tên-app>/Dockerfile. File này chỉ trỏ build context +
+#   dockerfile, KHÔNG định nghĩa nội dung Dockerfile.
+#
+# - Frontend KHÔNG chạy trong docker-compose này nữa — deploy riêng lên Vercel
+#   (static hosting, miễn phí, theo đúng mục 7.2 project_technical_spec.md).
+#   Cụm compose này chỉ lo phần backend: DB, Redis, ingestion, prediction, api,
+#   và nginx làm reverse proxy + SSL termination CHO API (để frontend ở Vercel
+#   gọi https://api.<domain>/... và wss://api.<domain>/ws bằng HTTPS/WSS thật).
+#   `apps/frontend/Dockerfile` vẫn còn trong repo — chỉ dùng khi bạn muốn test
+#   full-stack bằng Docker ở local (xem apps/frontend/README.md), không dùng
+#   cho production nữa.
+#
+# - TimescaleDB tự động chạy migration trong infra/db/migrations khi container
+#   khởi tạo lần đầu (thư mục data rỗng), thông qua cơ chế entrypoint chuẩn
+#   của image postgres/timescaledb: mọi file .sql trong
+#   /docker-entrypoint-initdb.d được thực thi theo thứ tự tên file.
+# =============================================================================
+
+services:
+  ingestion:
+    build:
+      context: ../../apps/ingestion-service
+      dockerfile: Dockerfile
+    env_file: ../../.env
+    networks: [backend]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  prediction:
+    build:
+      context: ../../apps/prediction-engine
+      dockerfile: Dockerfile
+    env_file: ../../.env
+    networks: [backend]
+    volumes:
+      # Model ML da train (xem src/training/train_lightgbm.py) — mount volume
+      # rieng de KHONG bi mat khi rebuild image/doi code (chi build lai COPY
+      # src/ vao image, khong dong cham thu muc nay).
+      - prediction_models:/app/trained_models
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # Core dự đoán ĐỘC LẬP cho chứng khoán HOSE (tách hoàn toàn khỏi
+  # prediction-engine crypto). Chỉ cần DB — lấy data VNDIRECT qua REST, ghi
+  # klines/predictions với market='hose'. Không dùng Redis (daily EOD).
+  prediction-hose:
+    build:
+      context: ../../apps/prediction-engine-hose
+      dockerfile: Dockerfile
+    env_file: ../../.env
+    networks: [backend]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  api:
+    build:
+      context: ../../apps/api-gateway
+      dockerfile: Dockerfile
+    env_file: ../../.env
+    networks: [backend, frontend]
+    # Không publish port trực tiếp ra host — nginx là cửa ngõ duy nhất.
+    expose: ["8080"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  timescaledb:
+    image: timescale/timescaledb:2.15.3-pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-crypto_predictor}
+      POSTGRES_USER: ${POSTGRES_USER:?err_missing_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err_missing_POSTGRES_PASSWORD}
+    networks: [backend]
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      # Migration SQL được tự động thực thi (theo thứ tự tên file) khi
+      # volume data rỗng (lần khởi tạo đầu tiên của container).
+      - ../../infra/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-crypto_predictor}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  redis:
+    image: redis:7.4.1-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?err_missing_REDIS_PASSWORD}", "--appendonly", "yes"]
+    networks: [backend]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # Reverse proxy / SSL termination cho API — đây là domain backend riêng
+  # (vd: api.yourdomain.com) mà frontend deploy trên Vercel sẽ gọi tới.
+  # Route "/api/"  -> api (REST)
+  # Route "/ws"    -> api (WebSocket)
+  # Không còn route "/" -> frontend (frontend không còn chạy trong compose này).
+  nginx:
+    image: nginx:1.27.3-alpine
+    networks: [frontend]
+    volumes:
+      - ../../infra/docker/nginx:/etc/nginx/conf.d:ro
+      # Production: mount thêm certs Let's Encrypt, vd:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports: ["80:80", "443:443"]
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+volumes:
+  timescale_data:
+  redis_data:
+  prediction_models:
+
+# Network tách biệt: "backend" chỉ dành cho DB/Redis/service nội bộ (không lộ
+# ra ngoài), "frontend" chỉ dành cho nginx <-> api. api nằm ở cả 2 network để
+# nginx forward được request nhưng timescaledb/redis không network chung với
+# nginx (không thể bị truy cập trực tiếp từ ngoài qua nginx).
+networks:
+  backend:
+  frontend:

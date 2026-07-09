@@ -1,0 +1,21 @@
+{
+  "name": "ingestion-service",
+  "version": "1.0.0",
+  "description": "Ket noi Binance REST + WebSocket, chuan hoa du lieu, ghi vao DB va publish Redis cho Crypto Real-time Predictor Chart.",
+  "private": true,
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "16.6.1",
+    "ioredis": "5.11.1",
+    "pg": "8.22.0",
+    "ws": "8.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

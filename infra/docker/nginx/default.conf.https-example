@@ -1,0 +1,88 @@
+# =============================================================================
+# infra/docker/nginx/default.conf.https-example
+#
+# Bản HTTPS/WSS bắt buộc cho production thật (có domain + certs Let's Encrypt).
+# Cách dùng:
+#   1. Cấp chứng chỉ bằng certbot (webroot hoặc standalone) cho domain backend
+#      (vd: api.yourdomain.com), lưu ở /etc/letsencrypt trên HOST.
+#   2. docker-compose.yml đã mount sẵn "/etc/letsencrypt:/etc/letsencrypt:ro"
+#      cho service nginx.
+#   3. Đổi <domain> bên dưới thành domain thật, rồi:
+#        cp default.conf.https-example default.conf
+#   4. Nhớ cấu hình renew tự động (certbot renew qua cron/systemd timer) và
+#      reload nginx sau khi renew (vd: certbot ... --deploy-hook
+#      "docker exec <nginx_container> nginx -s reload").
+# =============================================================================
+
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_conn_zone $binary_remote_addr zone=api_conn:10m;
+
+gzip on;
+gzip_comp_level 5;
+gzip_min_length 256;
+gzip_types application/json application/javascript text/css text/plain;
+
+# Redirect toàn bộ HTTP -> HTTPS.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <domain>;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name <domain>;
+
+    ssl_certificate     /etc/letsencrypt/live/<domain>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<domain>/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'none'" always;
+
+    client_max_body_size 1m;
+    limit_req zone=api_limit burst=20 nodelay;
+    limit_conn api_conn 20;
+
+    location / {
+        return 404 "Đây là backend API của Crypto Predictor. Frontend deploy riêng trên Vercel.\n";
+        add_header Content-Type text/plain;
+    }
+
+    location /api/ {
+        proxy_pass http://api:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ws {
+        limit_req zone=api_limit burst=5 nodelay;
+        proxy_pass http://api:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    location /health {
+        proxy_pass http://api:8080/health;
+        proxy_set_header Host $host;
+    }
+}

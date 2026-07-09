@@ -1,0 +1,1260 @@
+/* ==========================================================================
+   Theme tokens — light là mặc định (định vị "trang thương mại"), dark là
+   theme phụ cho trader quen giao diện terminal tối (toggle qua [data-theme]).
+   Accent (teal) và màu nến (up/down) giữ NGUYÊN giữa 2 theme để thương hiệu
+   nhất quán — chỉ nền/bề mặt/text đổi.
+   ========================================================================== */
+:root {
+  --bg-color: #f5f6f8;
+  --surface-color: #ffffff;
+  --surface-alt: #eef0f4;
+  --border-color: #e1e4ea;
+  --text-primary: #14171f;
+  --text-secondary: #5b6472;
+
+  --accent-color: #0f9d78;
+  --accent-color-strong: #0c8064;
+  --accent-tint: rgba(15, 157, 120, 0.1);
+
+  --cta-color: #dd9a2e;
+  --cta-color-strong: #c0821f;
+  --cta-tint: rgba(221, 154, 46, 0.12);
+
+  --up-color: #26a69a;
+  --down-color: #ef5350;
+  --badge-good: #0f9d78;
+  --badge-bad: #ef5350;
+  --badge-neutral: #5b6472;
+
+  --shadow-sm: 0 1px 2px rgba(20, 23, 31, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 23, 31, 0.08);
+}
+
+:root[data-theme="dark"] {
+  --bg-color: #0e1117;
+  --surface-color: #161a25;
+  --surface-alt: #1b2130;
+  --border-color: #262b3a;
+  --text-primary: #e6e9f0;
+  --text-secondary: #8b93a7;
+
+  --accent-tint: rgba(20, 184, 166, 0.16);
+  --cta-tint: rgba(221, 154, 46, 0.16);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: "Inter", "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Luôn dành chỗ cho thanh cuộn dọc để chiều rộng nội dung KHÔNG đổi khi nội
+   dung dài/ngắn ra (vd mở/đóng FAQ) — tránh layout "nhảy" ngang. */
+html {
+  scrollbar-gutter: stable;
+}
+
+a {
+  color: inherit;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ==========================================================================
+   Header + nav
+   ========================================================================== */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  height: 64px;
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: var(--accent-color);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  padding-left: 24px;
+}
+
+.main-nav a {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main-nav a:hover {
+  background-color: var(--surface-alt);
+  color: var(--text-primary);
+}
+
+.main-nav a[aria-current="page"] {
+  color: var(--accent-color);
+  background-color: var(--accent-tint);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    padding: 0 16px;
+  }
+
+  /* Nav chỉ là link placeholder ở giai đoạn này — ẩn trên mobile thay vì
+     wrap (wrap làm header cao 2 dòng, xấu) để tránh header bị tràn ngang
+     và kéo tràn ngang cả trang trên màn hình hẹp. */
+  .main-nav {
+    display: none;
+  }
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.theme-toggle:hover {
+  background-color: var(--surface-alt);
+  color: var(--text-primary);
+}
+
+.connection-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: var(--surface-alt);
+  white-space: nowrap;
+}
+
+.connection-status[data-status="connected"] {
+  color: var(--badge-good);
+  background-color: var(--accent-tint);
+}
+
+.connection-status[data-status="disconnected"],
+.connection-status[data-status="error"] {
+  color: var(--badge-bad);
+  background-color: rgba(239, 83, 80, 0.12);
+}
+
+/* ==========================================================================
+   Ticker tape — dải giá chạy real-time cho toàn bộ symbol đang theo dõi
+   ========================================================================== */
+.ticker-tape {
+  overflow: hidden;
+  background-color: var(--surface-alt);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.ticker-tape__track {
+  display: flex;
+  width: max-content;
+  padding: 8px 0;
+  animation: ticker-scroll 40s linear infinite;
+}
+
+.ticker-tape:hover .ticker-tape__track {
+  animation-play-state: paused;
+}
+
+.ticker-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 20px;
+  font-size: 13px;
+  white-space: nowrap;
+  border-right: 1px solid var(--border-color);
+}
+
+.ticker-item__symbol {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ticker-item__price {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-item__change {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-item__change[data-direction="up"] {
+  color: var(--up-color);
+}
+
+.ticker-item__change[data-direction="down"] {
+  color: var(--down-color);
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-tape__track {
+    animation: none;
+    overflow-x: auto;
+  }
+}
+
+/* ==========================================================================
+   Ad slots — placeholder rõ ràng, chưa gắn ad network thật (xem
+   project_overview.md mục 5.A: Coinzilla/Bitmedia/A-Ads).
+   ========================================================================== */
+.ad-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0 auto;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  background-color: var(--surface-alt);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.ad-slot__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.ad-slot__size {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.ad-slot--rectangle {
+  width: 100%;
+  max-width: 300px;
+  height: 250px;
+}
+
+.ad-slot--footer {
+  width: 100%;
+  max-width: 468px;
+  height: 60px;
+}
+
+/* ==========================================================================
+   Layout chính: cột chart (~genuine main) + sidebar widget
+   ========================================================================== */
+.portal-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  padding: 20px 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .portal-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+}
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.control-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.symbol-selector {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.symbol-selector:focus {
+  border-color: var(--accent-color);
+}
+
+.timeframe-selector {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background-color: var(--surface-alt);
+  border-radius: 6px;
+}
+
+.timeframe-btn {
+  min-width: 32px;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.timeframe-btn:hover {
+  color: var(--text-primary);
+}
+
+.timeframe-btn[data-active="true"] {
+  background-color: var(--surface-color);
+  color: var(--accent-color-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.accuracy-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.accuracy-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.accuracy-badge {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: var(--surface-alt);
+  color: var(--badge-neutral);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.accuracy-badge[data-level="good"] {
+  background-color: var(--accent-tint);
+  color: var(--badge-good);
+}
+
+.accuracy-badge[data-level="bad"] {
+  background-color: rgba(239, 83, 80, 0.12);
+  color: var(--badge-bad);
+}
+
+.error-banner {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--badge-bad);
+  background-color: rgba(239, 83, 80, 0.1);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.error-banner[hidden] {
+  display: none;
+}
+
+.chart-body {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+/* Cảnh báo ngay dưới chart, cạnh vùng nến dự đoán — bắt buộc hiển thị khi
+   trang có kiếm tiền (ads/affiliate/donate), xem index.html footer. */
+.chart-disclaimer {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-color);
+  background-color: var(--surface-alt);
+}
+
+.chart-disclaimer strong {
+  color: var(--badge-bad);
+}
+
+#chart-container {
+  width: 100%;
+  height: 100%;
+  position: relative; /* neo canvas vẽ vùng dự đoán, xem chartRenderer.js */
+}
+
+.forecast-zone-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Sidebar widgets
+   ========================================================================== */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.widget-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  padding: 14px 16px 0;
+  margin: 0 0 8px;
+}
+
+/* Affiliate CTA — cố tình dùng màu CTA (vàng/gold) khác với accent teal của
+   phần còn lại của UI (hiệu ứng Von Restorff: nổi bật vì khác biệt) vì đây
+   là khối doanh thu quan trọng (affiliate ref-link, xem project_overview.md
+   mục 5.B). */
+.affiliate-card {
+  padding: 16px;
+  background-color: var(--cta-tint);
+  border: 1px solid var(--cta-color);
+}
+
+.affiliate-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.affiliate-card__desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.affiliate-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.affiliate-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background-color: var(--cta-color);
+  color: #1a1300;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.affiliate-button:hover {
+  background-color: var(--cta-color-strong);
+}
+
+.affiliate-card__note {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin: 10px 0 0;
+  opacity: 0.75;
+}
+
+/* Market list */
+.market-list {
+  padding: 0 8px 12px;
+}
+
+.market-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.market-list__row:hover {
+  background-color: var(--surface-alt);
+}
+
+.market-list__row[data-active="true"] {
+  background-color: var(--accent-tint);
+}
+
+.market-list__symbol {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.market-list__meta {
+  text-align: right;
+}
+
+.market-list__price {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.market-list__change {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.market-list__change[data-direction="up"] {
+  color: var(--up-color);
+}
+
+.market-list__change[data-direction="down"] {
+  color: var(--down-color);
+}
+
+.market-list__hint {
+  padding: 0 16px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+/* News / update placeholder — nội dung thật (ghi chú thay đổi hệ thống),
+   KHÔNG bịa tin tức giả. */
+.updates-card {
+  padding: 4px 16px 16px;
+}
+
+.updates-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.updates-list li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding-left: 14px;
+  position: relative;
+}
+
+.updates-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.site-footer {
+  border-top: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+.footer-links a {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.footer-disclaimer {
+  max-width: 720px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.footer-copyright {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   Landing page (index.html) — trang giới thiệu kiểu thương mại (redesign).
+   ========================================================================== */
+.landing {
+  display: block;
+  max-width: none;
+}
+
+/* Buttons --------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.btn--sm { padding: 8px 16px; font-size: 13px; }
+.btn--lg { padding: 13px 24px; font-size: 15px; }
+
+.btn--primary {
+  background-color: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(15, 157, 120, 0.28);
+}
+.btn--primary:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(15, 157, 120, 0.36); }
+
+.btn--ghost {
+  background-color: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+.btn--ghost:hover { border-color: var(--accent-color); color: var(--accent-color-strong); }
+
+.btn--light {
+  background-color: #fff;
+  color: #0c8064;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.btn--light:hover { transform: translateY(-1px); }
+
+/* Eyebrow / gradient text ---------------------------------------------- */
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-color-strong);
+  margin-bottom: 14px;
+}
+.eyebrow--center { display: block; text-align: center; }
+
+.grad-text {
+  background: linear-gradient(100deg, #0f9d78, #37c99e 60%, #dd9a2e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Header ---------------------------------------------------------------- */
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: color-mix(in srgb, var(--surface-color) 82%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Hero ------------------------------------------------------------------ */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
+  align-items: center;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 88px 24px 72px;
+  overflow: hidden;
+}
+/* soft accent glow behind hero */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -60px;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(15, 157, 120, 0.18), transparent 62%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero__content, .hero__panel { position: relative; z-index: 1; }
+
+.hero__title {
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin: 0 0 18px;
+  font-weight: 800;
+}
+.hero__subtitle {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 30px;
+  max-width: 540px;
+}
+.hero__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.hero__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.hero__points li { font-weight: 500; }
+
+/* Hero product panel (dark, premium) */
+.hero__panel {
+  background: linear-gradient(160deg, #12172090, #0e1117);
+  background-color: #0e1117;
+  border: 1px solid #232a3a;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 30px 60px -20px rgba(12, 16, 24, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.panel-pair { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #e6e9f0; }
+.panel-pair .dot { width: 8px; height: 8px; border-radius: 50%; background: #26a69a; box-shadow: 0 0 0 4px rgba(38, 166, 154, 0.18); }
+.panel-tf { font-size: 12px; color: #8b93a7; }
+.panel-chart { height: 220px; border-radius: 12px; overflow: hidden; }
+.panel-chart svg { width: 100%; height: 100%; display: block; }
+.panel-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c7cdda;
+  background: #1b2130;
+  border: 1px solid #2a3142;
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+.chip--up { color: #34d399; border-color: rgba(52, 211, 153, 0.35); }
+.chip--forecast { color: #e0ab4f; border-color: rgba(221, 154, 46, 0.35); }
+
+/* Logos row ------------------------------------------------------------- */
+.logos {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px 24px 40px;
+  text-align: center;
+}
+.logos__label { display: block; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; }
+.logos__row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.logo-pill {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 8px 20px;
+  background: var(--surface-color);
+}
+
+/* Sections -------------------------------------------------------------- */
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+.section--alt { max-width: none; background-color: var(--surface-alt); }
+.section--alt > * { max-width: 1180px; margin-left: auto; margin-right: auto; }
+
+.section__title {
+  text-align: center;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 auto 10px;
+  max-width: 640px;
+  font-weight: 800;
+}
+.section__subtitle { text-align: center; color: var(--text-secondary); margin: 0 0 48px; font-size: 16px; }
+
+/* Features -------------------------------------------------------------- */
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 26px 24px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.feature:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color)); }
+.feature__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  color: var(--accent-color-strong);
+  background: var(--accent-tint);
+  margin-bottom: 16px;
+}
+.feature__icon svg { width: 24px; height: 24px; }
+.feature h3 { font-size: 17px; margin: 0 0 8px; font-weight: 700; }
+.feature p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+
+/* Steps ----------------------------------------------------------------- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; position: relative; }
+.step {
+  position: relative;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 30px 26px;
+  text-align: center;
+}
+.step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-color-strong));
+  color: #fff;
+  font-weight: 800;
+  font-size: 17px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 16px rgba(15, 157, 120, 0.3);
+}
+.step h3 { font-size: 16px; margin: 0 0 8px; font-weight: 700; }
+.step p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+
+/* Metrics --------------------------------------------------------------- */
+.metrics {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px 24px 72px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.metric {
+  text-align: center;
+  padding: 24px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--surface-color);
+}
+.metric__num { display: block; font-size: 30px; font-weight: 800; color: var(--accent-color-strong); letter-spacing: -0.02em; }
+.metric__label { font-size: 13px; color: var(--text-secondary); }
+
+/* FAQ ------------------------------------------------------------------- */
+/* Desktop: rộng tối đa 780 (container luôn >780 nên bằng 780). Mobile: co
+   vừa khung (100%) — không tràn ngang. */
+.faq { width: 100%; max-width: 780px; margin: 0 auto; }
+.faq__item {
+  width: 100%;
+  margin-bottom: 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2px 20px;
+  transition: border-color 0.15s ease;
+}
+.faq__item:last-child { margin-bottom: 0; }
+.faq__item[open] { border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color)); }
+.faq__item summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px 0;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.faq__item summary::-webkit-details-marker { display: none; }
+.faq__item summary::after { content: "+"; color: var(--accent-color-strong); font-weight: 700; font-size: 20px; line-height: 1; }
+.faq__item[open] summary::after { content: "\2212"; }
+.faq__item p { margin: 0 0 16px; font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+
+/* CTA band -------------------------------------------------------------- */
+.cta-band {
+  position: relative;
+  padding: 72px 24px;
+  background: radial-gradient(120% 140% at 50% 0%, #12b98c 0%, #0c8064 55%, #0a6b54 100%);
+  color: #fff;
+  overflow: hidden;
+}
+.cta-band__inner { max-width: 640px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+.cta-band h2 { font-size: clamp(24px, 3vw, 32px); margin: 0 0 12px; font-weight: 800; letter-spacing: -0.02em; }
+.cta-band p { margin: 0 0 26px; opacity: 0.94; font-size: 16px; }
+
+/* Responsive ------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding-top: 56px; }
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 620px) {
+  .hero__panel { display: none; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  .landing-header .main-nav { display: none; }
+}
+
+/* ==========================================================================
+   Card ủng hộ (donate) — Buy Me a Coffee + ví crypto sao chép được.
+   ========================================================================== */
+.donate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.donate-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.donate-bmc {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #14171f;
+  background-color: #ffdd00; /* màu thương hiệu Buy Me a Coffee */
+}
+
+.donate-bmc:hover {
+  filter: brightness(0.95);
+}
+
+.donate-wallets__title {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.donate-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--surface-alt);
+  cursor: pointer;
+  text-align: left;
+}
+
+.donate-wallet:hover {
+  border-color: var(--accent-color);
+}
+
+.donate-wallet__net {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-color-strong);
+}
+
+.donate-wallet__addr {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.donate-wallet__copy {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Trang tĩnh pháp lý (terms/privacy/about/contact) — dùng chung main.css,
+   không kéo JS chart. Bố cục 1 cột đọc dễ, giới hạn bề rộng.
+   ========================================================================== */
+.legal-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  width: 100%;
+}
+
+.legal-content {
+  padding: 32px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.legal-back {
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.legal-back a {
+  color: var(--accent-color-strong);
+  text-decoration: none;
+}
+
+.legal-back a:hover {
+  text-decoration: underline;
+}
+
+.legal-content h1 {
+  font-size: 26px;
+  margin: 0 0 4px;
+}
+
+.legal-content h2 {
+  font-size: 17px;
+  margin: 26px 0 8px;
+  color: var(--text-primary);
+}
+
+.legal-content p,
+.legal-content li {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.legal-content ul {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.legal-content li {
+  margin-bottom: 6px;
+}
+
+.legal-content a {
+  color: var(--accent-color-strong);
+}
+
+.legal-content strong {
+  color: var(--text-primary);
+}
+
+.legal-updated {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 20px;
+}
+
+.legal-note {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Responsive tổng — điều chỉnh nhất quán cho tablet & mobile toàn app
+   (bổ sung cho các @media cục bộ ở trên; đặt cuối để override khi cần).
+   ========================================================================== */
+
+/* Tablet (≤960px): layout chính đã về 1 cột (ở trên) — thu gọn padding/gap */
+@media (max-width: 960px) {
+  .portal-layout { padding: 16px; gap: 16px; }
+  .section { padding: 64px 24px; }
+}
+
+/* Mobile (≤640px) */
+@media (max-width: 640px) {
+  .site-header { height: 56px; padding: 0 16px; }
+  .brand { font-size: 16px; }
+
+  .portal-layout { padding: 12px; gap: 14px; }
+
+  /* Chart mobile: cho CARD chiều cao xác định (theo màn hình), để chart-body
+     giữ flex:1 lấp đầy như desktop — KHÔNG đặt height lên chart-body vì sẽ
+     xung đột với flex:1 (flex-basis:0%) làm chart co về 0/blank. */
+  .chart-card { height: 70vh; min-height: 400px; max-height: 640px; }
+  .chart-toolbar { gap: 10px; padding: 12px; }
+
+  /* Landing: thu gọn khoảng cách các khối */
+  .hero { padding: 36px 20px 28px; }
+  .section { padding: 48px 20px; }
+  .cta-band { padding: 48px 20px; }
+  .logos { padding: 4px 20px 32px; }
+  .metrics { padding: 4px 20px 56px; }
+  .hero__subtitle { font-size: 16px; }
+  .section__subtitle { font-size: 15px; margin-bottom: 36px; }
+
+  /* Footer: gọn hơn */
+  .site-footer { padding: 20px 16px; }
+  .footer-links { gap: 12px; }
+}
+
+/* Mobile nhỏ (≤400px) */
+@media (max-width: 400px) {
+  .header-actions { gap: 8px; }
+  .brand span:last-child { display: none; } /* chỉ giữ logo vuông "Cp" */
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .hero__cta .btn { flex: 1 1 auto; } /* nút CTA giãn đều, dễ bấm */
+}
+
+/* ==========================================================================
+   Market toggle (Crypto / CK VN) trên chart toolbar (app.html)
+   ========================================================================== */
+.market-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background-color: var(--surface-alt);
+  border-radius: 6px;
+}
+
+.market-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.market-btn:hover {
+  color: var(--text-primary);
+}
+
+.market-btn[data-active="true"] {
+  background-color: var(--surface-color);
+  color: var(--accent-color-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Nút khung thời gian bị vô hiệu (vd CK VN chỉ cho phép 1D). */
+.timeframe-btn[data-disabled="true"] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

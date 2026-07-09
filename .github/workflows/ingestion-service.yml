@@ -1,0 +1,17 @@
+name: ingestion-service
+on:
+  push:
+    paths: ["apps/ingestion-service/**"]
+  pull_request:
+    paths: ["apps/ingestion-service/**"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: "npm"
+          cache-dependency-path: apps/ingestion-service/package-lock.json
+      - run: cd apps/ingestion-service && npm ci && npm test --if-present

@@ -1,0 +1,12 @@
+# Version pin chính xác để build reproducible. Khi cần nâng cấp, đổi version
+# ở đây rồi test lại kỹ (không dùng >=/^ để tránh breaking change âm thầm).
+redis==5.0.8
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+numpy==1.26.4
+# pandas: tinh feature ky thuat (RSI/MACD/Bollinger/volume) tren rolling
+# window — code tay bang numpy se dai/de sai hon nhieu so voi pandas.
+pandas==2.2.3
+# lightgbm: model ML thay the baseline EMA (xem models/lightgbm_model.py).
+# CPU-only, khong can GPU — phu hop gioi han tai nguyen container hien tai.
+lightgbm==4.5.0
