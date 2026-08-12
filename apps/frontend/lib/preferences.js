@@ -11,23 +11,21 @@ const STORAGE_KEY = "cpc:filter"; // crypto-predictor-chart
 const VALID_INTERVALS = new Set(["1m", "1h", "1d", "1w", "1M"]);
 const VALID_MARKETS = new Set(["crypto", "hose"]);
 
-/**
- * Đọc filter đã lưu.
- * @returns {{ symbol: string, interval: string, market: string } | null}
- *   null nếu chưa lưu / dữ liệu không hợp lệ (caller dùng mặc định).
- */
+const VALID_HOSE_SYMBOLS = new Set(["FPT", "VNM", "VIC", "HPG", "MWG", "VCB", "PNJ"]);
+
 export function loadFilter() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
-    const symbol = typeof parsed?.symbol === "string" ? parsed.symbol : null;
-    const interval = VALID_INTERVALS.has(parsed?.interval) ? parsed.interval : null;
-    // market tuỳ chọn (tương thích bản lưu cũ chưa có market) -> mặc định crypto.
-    const market = VALID_MARKETS.has(parsed?.market) ? parsed.market : "crypto";
+    let symbol = typeof parsed?.symbol === "string" ? parsed.symbol.toUpperCase() : "FPT";
+    if (!VALID_HOSE_SYMBOLS.has(symbol)) {
+      symbol = "FPT";
+    }
+    const interval = "1d";
+    const market = "hose";
 
-    if (!symbol || !interval) return null;
     return { symbol, interval, market };
   } catch {
     return null;
@@ -37,10 +35,11 @@ export function loadFilter() {
 /**
  * Lưu filter hiện tại. Gọi mỗi khi người dùng đổi symbol/khung/thị trường.
  */
-export function saveFilter(symbol, interval, market = "crypto") {
+export function saveFilter(symbol, interval, market = "hose") {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ symbol, interval, market }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ symbol, interval, market: "hose" }));
   } catch {
     // localStorage không dùng được -> bỏ qua, không làm gián đoạn UI.
   }
 }
+

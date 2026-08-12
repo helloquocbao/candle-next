@@ -51,11 +51,13 @@ from dotenv import load_dotenv
 # Cho phep chay truc tiep `python src/main.py` (khong dung package-relative import).
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+import ai_advisor  # noqa: E402
 from db import (  # noqa: E402
     close_connection,
     get_recent_klines,
     get_tracked_pairs,
     insert_accuracy,
+    insert_ai_signal,
     insert_model_params_history,
     insert_prediction,
 )
@@ -113,6 +115,15 @@ ACCURACY_HISTORY_MAXLEN = int(os.getenv("ACCURACY_HISTORY_MAXLEN", "200"))
 # hien thi truc quan xu huong, sai so cua chung TICH LUY qua tung buoc nen
 # khong dung de danh gia do chinh xac model.
 PREDICTION_HORIZON = int(os.getenv("PREDICTION_HORIZON", "10"))
+
+# Ensemble AI (DeepSeek, xem ai_advisor.py) — bat/tat + throttle bang
+# ai_advisor.DEEPSEEK_ENABLED (mac dinh false, khong anh huong luong hien co).
+# AI chi duoc goi moi N nen dong (khong phai moi nen) de gioi han chi phi/API
+# rate limit + do tre network (~vai giay) tren thread cua tung cap — voi
+# interval ngan (1m) NEN tang gia tri nay len (vd 10-15), voi interval dai
+# (1h/1d) co the de 1 (goi moi nen). Chi ap dung cho buoc t+1 (buoc duoc theo
+# doi accuracy), khong ap dung cho ca PREDICTION_HORIZON buoc (xem ai_advisor.py).
+AI_REFRESH_EVERY_N_CANDLES = int(os.getenv("AI_REFRESH_EVERY_N_CANDLES", "3"))
 
 if not (0.0 < TRAIN_SPLIT_RATIO < 1.0):
     raise ValueError(
@@ -177,6 +188,10 @@ class PredictionEngine:
         }
         self.accuracy_history: deque[dict] = deque(maxlen=ACCURACY_HISTORY_MAXLEN)
         self.evaluations_since_optimize = 0
+        # Throttle cho ensemble AI (xem AI_REFRESH_EVERY_N_CANDLES) — bat dau
+        # tu gia tri lon de GOI NGAY lan dau tien co du lich su, khong phai
+        # cho du AI_REFRESH_EVERY_N_CANDLES chu ky moi co tin hieu AI dau tien.
+        self.candles_since_ai_call = AI_REFRESH_EVERY_N_CANDLES
 
         # Neu da co model LightGBM duoc train rieng cho (symbol, interval)
         # nay (xem training/train_lightgbm.py), dung no thay cho baseline EMA
@@ -422,15 +437,34 @@ class PredictionEngine:
             return
 
         latest_open_time = _parse_iso(latest_kline["openTime"])
+        current_close = float(latest_kline["close"])
+
+        # Ensemble AI (DeepSeek) — CHI ap dung cho buoc t+1 (predictions[0]),
+        # buoc duy nhat duoc theo doi de tinh accuracy (xem ghi chu
+        # PREDICTION_HORIZON). Neu bi tat/loi/timeout, ai_signal = None va
+        # predictions[0] giu nguyen y nhu truoc khi co tinh nang nay — khong
+        # bao gio chan/thay doi luong du doan chinh vi 1 dich vu ben ngoai.
+        ai_signal = None
+        self.candles_since_ai_call += 1
+        if ai_advisor.DEEPSEEK_ENABLED and self.candles_since_ai_call >= AI_REFRESH_EVERY_N_CANDLES:
+            self.candles_since_ai_call = 0
+            ai_signal = ai_advisor.get_ai_signal(self.symbol, self.interval, history, predictions[0])
+
+        model_versions = [model_version] * len(predictions)
+        if ai_signal is not None:
+            predictions[0] = ai_advisor.blend_with_quant_signal(
+                predictions[0], ai_signal, current_close=current_close
+            )
+            model_versions[0] = f"{model_version}+deepseek"
 
         pred_rows = []
         for step, prediction in enumerate(predictions):
             # Recalibrate confidence bang direction accuracy THUC TE gan day —
-            # confidence goc tu model chi dua tren volatility, khong tuong
-            # quan voi kha nang du doan dung chieu thuc te (xem
-            # evaluation/calibration.py). Ap dung nhu nhau cho moi buoc vi
-            # accuracy_history hien chi phan anh do chinh xac cua rieng nen
-            # t+1 (xem ghi chu PREDICTION_HORIZON o tren).
+            # confidence goc tu model (hoac da ensemble voi AI o tren) chi
+            # dua tren volatility/AI, khong tuong quan voi kha nang du doan
+            # dung chieu thuc te (xem evaluation/calibration.py). Ap dung nhu
+            # nhau cho moi buoc vi accuracy_history hien chi phan anh do
+            # chinh xac cua rieng nen t+1 (xem ghi chu PREDICTION_HORIZON o tren).
             calibrated_confidence = calibrate_confidence(
                 prediction["confidence"], self.accuracy_history
             )
@@ -445,10 +479,28 @@ class PredictionEngine:
                 "predicted_low": prediction["predicted_low"],
                 "predicted_close": prediction["predicted_close"],
                 "confidence": calibrated_confidence,
-                "model_version": model_version,
+                "model_version": model_versions[step],
             }
             pred_row["id"] = insert_prediction(pred_row)
             pred_rows.append(pred_row)
+
+            if step == 0 and ai_signal is not None:
+                # Audit trail rieng (bang ai_signals) de sau nay so sanh
+                # accuracy_log cua cac prediction co/khong co AI (loc theo
+                # model_version) — ghi loi o day KHONG duoc anh huong luong
+                # du doan chinh (giong tinh than insert_accuracy/insert_prediction).
+                insert_ai_signal(
+                    {
+                        "prediction_id": pred_row["id"],
+                        "symbol": self.symbol,
+                        "interval": self.interval,
+                        "direction": prediction["ai_direction"],
+                        "predicted_change_pct": prediction["ai_predicted_change_pct"],
+                        "ai_confidence": prediction["ai_confidence"],
+                        "blended": True,
+                        "reasoning": prediction["ai_reasoning"],
+                    }
+                )
 
         # symbol/interval o day de frontend loc phong thu (giong het pattern
         # cua kline/accuracy_update) — du WS subscription da duoc gateway

@@ -78,8 +78,77 @@ def insert_prediction(pred: dict) -> int:
             return cur.fetchone()[0]
 
 
+def insert_ai_signal(row: dict) -> int:
+    """
+    Ghi 1 tín hiệu AI (DeepSeek, xem ai_advisor.py) vào bảng `ai_signals`
+    (market='hose') — audit trail RIÊNG với `predictions`, để sau này đánh
+    giá AI có thực sự cải thiện accuracy hay không (so sánh accuracy_log của
+    các prediction có model_version chứa "+deepseek" vs không, xem
+    infra/db/migrations/006_ai_signals.sql).
+
+    Không tự bắt lỗi ở đây (giống upsert_kline/insert_prediction ở trên) —
+    caller (main.py::process_symbol) chịu trách nhiệm try/except quanh lời
+    gọi này để 1 lỗi ghi audit không làm chết cả chu kỳ xử lý mã đó.
+    """
+    query = """
+        INSERT INTO ai_signals
+            (prediction_id, symbol, interval, market, direction,
+             predicted_change_pct, ai_confidence, blended, reasoning)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id;
+    """
+    values = (
+        row.get("prediction_id"), row["symbol"], row["interval"], MARKET,
+        row["direction"], row.get("predicted_change_pct"), row.get("ai_confidence"),
+        row.get("blended", True), row.get("reasoning"),
+    )
+    with _lock:
+        with get_connection().cursor() as cur:
+            cur.execute(query, values)
+            return cur.fetchone()[0]
+
+
 def close_connection() -> None:
     global _connection
     if _connection is not None and _connection.closed == 0:
         _connection.close()
     _connection = None
+
+
+def get_recent_klines(symbol: str, interval: str, limit: int = 2000) -> list[dict]:
+    """
+    Đọc N nến daily HOSE gần nhất từ bảng `klines` (market='hose') — dùng
+    bởi training/train_lightgbm.py để lấy lịch sử train/validation. Khác với
+    main.py::process_symbol (luôn fetch trực tiếp từ vnstock mỗi chu kỳ),
+    hàm này đọc lại dữ liệu ĐÃ được upsert vào DB qua các chu kỳ trước đó —
+    phù hợp cho training vì cần nhiều lịch sử hơn HOSE_HISTORY_DAYS hiện tại
+    của 1 lần fetch.
+
+    Returns:
+        list[dict]: sắp xếp THỜI GIAN TĂNG DẦN (cũ -> mới), có "volume" (cần
+        cho features/feature_builder.py::relative_volume).
+    """
+    query = """
+        SELECT open_time, open, high, low, close, volume
+        FROM klines
+        WHERE symbol = %s AND interval = %s AND market = %s
+        ORDER BY open_time DESC
+        LIMIT %s
+    """
+    with _lock:
+        with get_connection().cursor() as cur:
+            cur.execute(query, (symbol.upper(), interval, MARKET, limit))
+            rows = cur.fetchall()
+
+    return [
+        {
+            "openTime": row[0].isoformat(),
+            "open": float(row[1]),
+            "high": float(row[2]),
+            "low": float(row[3]),
+            "close": float(row[4]),
+            "volume": float(row[5]),
+            "isClosed": True,
+        }
+        for row in reversed(rows)  # DB trả về DESC (mới -> cũ) -> đảo lại tăng dần
+    ]

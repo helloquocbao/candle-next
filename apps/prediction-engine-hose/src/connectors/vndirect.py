@@ -94,19 +94,42 @@ def fetch_daily_ohlcv(
     symbol: str, from_ts: int, to_ts: int, interval: str = DEFAULT_INTERVAL
 ) -> list[dict]:
     """
-    Lấy OHLCV daily của 1 mã HOSE trong khoảng [from_ts, to_ts] (epoch giây).
-    Trả về danh sách nến chuẩn hoá (tăng dần), hoặc [] nếu lỗi/không có data
-    (không raise để không làm chết vòng lặp — caller log & retry).
+    Lấy OHLCV daily của 1 mã HOSE trong khoảng [from_ts, to_ts] (epoch giây) qua vnstock.
+    Trả về danh sách nến chuẩn hoá (tăng dần), hoặc [] nếu lỗi/không có data.
     """
-    params = urllib.parse.urlencode(
-        {"symbol": symbol.upper(), "resolution": "D", "from": int(from_ts), "to": int(to_ts)}
-    )
-    url = f"{VNDIRECT_DCHART_URL}?{params}"
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-        return parse_udf(payload, symbol, interval)
-    except Exception:  # noqa: BLE001 - lỗi mạng/parse không được làm chết service
-        logger.exception("[vndirect] Lỗi khi lấy OHLCV cho %s", symbol)
+        from_date = datetime.fromtimestamp(from_ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        to_date = datetime.fromtimestamp(to_ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        
+        from vnstock import Quote
+        quote = Quote(symbol=symbol)
+        df = quote.history(start=from_date, end=to_date)
+        if df is None or df.empty:
+            return []
+        
+        rows = []
+        sym = symbol.upper()
+        for _, row in df.iterrows():
+            # Convert pandas Timestamp to ISO format UTC timezone-aware string
+            dt_utc = row['time'].tz_localize('Asia/Ho_Chi_Minh').tz_convert('UTC')
+            open_iso = dt_utc.isoformat()
+            
+            rows.append({
+                "symbol": sym,
+                "interval": interval,
+                "openTime": open_iso,
+                "open": float(row['open']),
+                "high": float(row['high']),
+                "low": float(row['low']),
+                "close": float(row['close']),
+                "volume": float(row['volume']) if row['volume'] is not None else 0.0,
+                "closeTime": open_iso,
+                "isClosed": True,
+            })
+        
+        rows.sort(key=lambda r: r["openTime"])
+        return rows
+    except Exception:  # noqa: BLE001
+        logger.exception("[vnstock] Lỗi khi lấy OHLCV cho %s", symbol)
         return []
+

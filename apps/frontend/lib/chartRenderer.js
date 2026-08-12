@@ -166,7 +166,16 @@ export function createChartRenderer(container) {
     if (!forecastZone) return;
 
     const x1 = timeToXWithExtrapolation(forecastZone.fromTime);
-    const x2 = timeToXWithExtrapolation(forecastZone.toTime);
+    let x2 = null;
+    if (x1 !== null && typeof forecastZone.steps === "number") {
+      const lastLogical = chart.timeScale().coordinateToLogical(x1);
+      if (lastLogical !== null) {
+        x2 = chart.timeScale().logicalToCoordinate(lastLogical + forecastZone.steps);
+      }
+    }
+    if (x2 === null) {
+      x2 = timeToXWithExtrapolation(forecastZone.toTime);
+    }
     const yCurrent = realSeries.priceToCoordinate(forecastZone.currentPrice);
     const yHigh = realSeries.priceToCoordinate(forecastZone.highPrice);
     const yLow = realSeries.priceToCoordinate(forecastZone.lowPrice);
@@ -178,40 +187,75 @@ export function createChartRenderer(container) {
     const right = Math.min(Math.max(x1, x2), zoneCanvas.clientWidth);
     if (right <= left) return;
 
-    // Vùng xanh: từ giá hiện tại lên tới đỉnh dự đoán (tiềm năng tăng).
-    zoneCtx.fillStyle = `rgba(${UP_COLOR}, ${zoneStyle.fill})`;
-    zoneCtx.fillRect(left, yHigh, right - left, yCurrent - yHigh);
+    if (forecastZone.isSimulation) {
+      const highPct = ((forecastZone.highPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+      const lowPct = ((forecastZone.lowPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+      const ratio = (Math.abs(lowPct) > 0 ? (highPct / Math.abs(lowPct)).toFixed(2) : "0.00");
 
-    // Vùng đỏ: từ giá hiện tại xuống đáy dự đoán (tiềm năng giảm).
-    zoneCtx.fillStyle = `rgba(${DOWN_COLOR}, ${zoneStyle.fill})`;
-    zoneCtx.fillRect(left, yCurrent, right - left, yLow - yCurrent);
+      // Vùng xanh: Target zone
+      zoneCtx.fillStyle = `rgba(${UP_COLOR}, 0.22)`;
+      zoneCtx.fillRect(left, yHigh, right - left, yCurrent - yHigh);
 
-    // Viền bao quanh toàn bộ vùng.
-    zoneCtx.strokeStyle = `rgba(139, 147, 167, ${zoneStyle.border})`;
-    zoneCtx.lineWidth = 1;
-    zoneCtx.strokeRect(left, yHigh, right - left, yLow - yHigh);
+      // Vùng đỏ: Stop zone
+      zoneCtx.fillStyle = `rgba(${DOWN_COLOR}, 0.22)`;
+      zoneCtx.fillRect(left, yCurrent, right - left, yLow - yCurrent);
 
-    // Đường mục tiêu (giá dự đoán ở bước xa nhất) — nét đứt màu accent.
-    if (yTarget !== null) {
-      zoneCtx.strokeStyle = `rgba(${ACCENT_COLOR}, ${zoneStyle.targetLine})`;
-      zoneCtx.lineWidth = 1.5;
-      zoneCtx.setLineDash([5, 4]);
+      // Viền bao quanh.
+      zoneCtx.strokeStyle = `rgba(139, 147, 167, 0.6)`;
+      zoneCtx.lineWidth = 1;
+      zoneCtx.strokeRect(left, yHigh, right - left, yLow - yHigh);
+
+      // Đường entry ở giữa
+      zoneCtx.strokeStyle = "rgba(139, 147, 167, 0.8)";
+      zoneCtx.lineWidth = 1;
       zoneCtx.beginPath();
-      zoneCtx.moveTo(left, yTarget);
-      zoneCtx.lineTo(right, yTarget);
+      zoneCtx.moveTo(left, yCurrent);
+      zoneCtx.lineTo(right, yCurrent);
       zoneCtx.stroke();
-      zoneCtx.setLineDash([]);
-    }
 
-    const highPct = ((forecastZone.highPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
-    const lowPct = ((forecastZone.lowPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
-    const targetPct = ((forecastZone.targetPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+      // Vẽ nhãn
+      drawZoneLabel(right - 2, yHigh + 2, `Target: +${highPct.toFixed(2)}%`, UP_COLOR, "top");
+      drawZoneLabel(right - 2, yLow - 2, `Stop: ${lowPct.toFixed(2)}%`, DOWN_COLOR, "bottom");
+      
+      const labelText = `R/R: ${ratio}`;
+      const textW = zoneCtx.measureText(labelText).width;
+      drawZoneLabel(left + 2 + textW + 12, yCurrent - 9, labelText, "139, 147, 167", "top");
+    } else {
+      // Vùng xanh: từ giá hiện tại lên tới đỉnh dự đoán (tiềm năng tăng).
+      zoneCtx.fillStyle = `rgba(${UP_COLOR}, ${zoneStyle.fill})`;
+      zoneCtx.fillRect(left, yHigh, right - left, yCurrent - yHigh);
 
-    drawZoneLabel(right - 2, yHigh + 2, `+${highPct.toFixed(2)}%`, UP_COLOR, "top");
-    drawZoneLabel(right - 2, yLow - 2, `${lowPct.toFixed(2)}%`, DOWN_COLOR, "bottom");
-    if (yTarget !== null) {
-      const sign = targetPct >= 0 ? "+" : "";
-      drawZoneLabel(left + 2 + zoneCtx.measureText(`${sign}${targetPct.toFixed(2)}%`).width + 12, yTarget - 9, `${sign}${targetPct.toFixed(2)}%`, ACCENT_COLOR, "top");
+      // Vùng đỏ: từ giá hiện tại xuống đáy dự đoán (tiềm năng giảm).
+      zoneCtx.fillStyle = `rgba(${DOWN_COLOR}, ${zoneStyle.fill})`;
+      zoneCtx.fillRect(left, yCurrent, right - left, yLow - yCurrent);
+
+      // Viền bao quanh toàn bộ vùng.
+      zoneCtx.strokeStyle = `rgba(139, 147, 167, ${zoneStyle.border})`;
+      zoneCtx.lineWidth = 1;
+      zoneCtx.strokeRect(left, yHigh, right - left, yLow - yHigh);
+
+      // Đường mục tiêu (giá dự đoán ở bước xa nhất) — nét đứt màu accent.
+      if (yTarget !== null) {
+        zoneCtx.strokeStyle = `rgba(${ACCENT_COLOR}, ${zoneStyle.targetLine})`;
+        zoneCtx.lineWidth = 1.5;
+        zoneCtx.setLineDash([5, 4]);
+        zoneCtx.beginPath();
+        zoneCtx.moveTo(left, yTarget);
+        zoneCtx.lineTo(right, yTarget);
+        zoneCtx.stroke();
+        zoneCtx.setLineDash([]);
+      }
+
+      const highPct = ((forecastZone.highPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+      const lowPct = ((forecastZone.lowPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+      const targetPct = ((forecastZone.targetPrice - forecastZone.currentPrice) / forecastZone.currentPrice) * 100;
+
+      drawZoneLabel(right - 2, yHigh + 2, `+${highPct.toFixed(2)}%`, UP_COLOR, "top");
+      drawZoneLabel(right - 2, yLow - 2, `${lowPct.toFixed(2)}%`, DOWN_COLOR, "bottom");
+      if (yTarget !== null) {
+        const sign = targetPct >= 0 ? "+" : "";
+        drawZoneLabel(left + 2 + zoneCtx.measureText(`${sign}${targetPct.toFixed(2)}%`).width + 12, yTarget - 9, `${sign}${targetPct.toFixed(2)}%`, ACCENT_COLOR, "top");
+      }
     }
   }
 
@@ -229,8 +273,9 @@ export function createChartRenderer(container) {
    * high/low trên TOÀN BỘ dải N bước, đường mục tiêu là predicted_close của
    * bước XA NHẤT (t+N) — "kỳ vọng" sau toàn bộ khoảng dự đoán.
    * @param {Array<{target_time:string|number, predicted_open:number, predicted_high:number, predicted_low:number, predicted_close:number}>} predictions
+   * @param {boolean} isSimulation
    */
-  function updateForecastZone(predictions) {
+  function updateForecastZone(predictions, isSimulation = false) {
     if (!Array.isArray(predictions) || predictions.length === 0) {
       forecastZone = null;
       return;
@@ -258,6 +303,8 @@ export function createChartRenderer(container) {
       highPrice: Math.max(highPrice, currentPrice),
       lowPrice: Math.min(lowPrice, currentPrice),
       targetPrice: Number(last.predicted_close),
+      steps: sorted.length,
+      isSimulation,
     };
   }
 

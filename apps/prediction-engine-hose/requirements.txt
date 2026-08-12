@@ -1,5 +1,18 @@
 # numpy dùng cho model dự đoán vùng giá (forecast_zone dùng thuần Python nên
-# hiện chưa bắt buộc, giữ lại cho mở rộng model sau).
+# hiện chưa bắt buộc, giữ lại cho mở rộng model sau) + đánh giá training/train_lightgbm.py.
 numpy==2.1.3
+# pandas: tính feature kỹ thuật (RSI/MACD/Bollinger/volume) trên rolling
+# window cho training/features (xem features/feature_builder.py).
+pandas==2.2.3
+# lightgbm: model ML thay thế forecast_zone.py heuristic (xem
+# models/lightgbm_model.py, training/train_lightgbm.py). CPU-only, không
+# cần GPU — phù hợp giới hạn tài nguyên container hiện tại.
+lightgbm==4.5.0
 python-dotenv==1.0.1
 psycopg2-binary==2.9.9
+# requests: gọi DeepSeek Chat API (ensemble AI, xem ai_advisor.py). Chỉ được
+# gọi khi DEEPSEEK_ENABLED=true, mặc định tắt -> không ảnh hưởng runtime hiện có.
+requests==2.32.3
+vnstock>=4.0.5
+vnai>=2.5.6
+

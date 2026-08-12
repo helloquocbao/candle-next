@@ -32,8 +32,8 @@ export default function TermsPage() {
       </p>
       <h2>4. Duy trì hoạt động</h2>
       <p>
-        Trang được duy trì phi lợi nhuận qua quảng cáo, liên kết giới thiệu và/hoặc đóng góp tự
-        nguyện — không đổi lại lợi ích tài chính hay dịch vụ đầu tư nào.
+        Trang được duy trì phi lợi nhuận qua liên kết giới thiệu và/hoặc đóng góp tự nguyện —
+        không đổi lại lợi ích tài chính hay dịch vụ đầu tư nào.
       </p>
       <p className="legal-note">
         Xem thêm <a href="/privacy">Chính sách bảo mật</a>.

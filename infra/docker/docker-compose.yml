@@ -23,56 +23,57 @@ version: "3.9"
 # =============================================================================
 
 services:
-  ingestion:
-    build:
-      context: ../../apps/ingestion-service
-      dockerfile: Dockerfile
-    env_file: ../../.env
-    networks: [backend]
-    depends_on:
-      timescaledb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
+#   ingestion:
+#     build:
+#       context: ../../apps/ingestion-service
+#       dockerfile: Dockerfile
+#     env_file: ../../.env
+#     networks: [backend]
+#     depends_on:
+#       timescaledb:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+#     restart: unless-stopped
+#     logging:
+#       driver: json-file
+#       options:
+#         max-size: "10m"
+#         max-file: "3"
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 256M
+# 
+#   prediction:
+#     build:
+#       context: ../../apps/prediction-engine
+#       dockerfile: Dockerfile
+#     env_file: ../../.env
+#     networks: [backend]
+#     volumes:
+#       # Model ML da train (xem src/training/train_lightgbm.py) — mount volume
+#       # rieng de KHONG bi mat khi rebuild image/doi code (chi build lai COPY
+#       # src/ vao image, khong dong cham thu muc nay).
+#       - prediction_models:/app/trained_models
+#     depends_on:
+#       timescaledb:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+#     restart: unless-stopped
+#     logging:
+#       driver: json-file
+#       options:
+#         max-size: "10m"
+#         max-file: "3"
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "1.0"
+#           memory: 512M
 
-  prediction:
-    build:
-      context: ../../apps/prediction-engine
-      dockerfile: Dockerfile
-    env_file: ../../.env
-    networks: [backend]
-    volumes:
-      # Model ML da train (xem src/training/train_lightgbm.py) — mount volume
-      # rieng de KHONG bi mat khi rebuild image/doi code (chi build lai COPY
-      # src/ vao image, khong dong cham thu muc nay).
-      - prediction_models:/app/trained_models
-    depends_on:
-      timescaledb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
 
   # Core dự đoán ĐỘC LẬP cho chứng khoán HOSE (tách hoàn toàn khỏi
   # prediction-engine crypto). Chỉ cần DB — lấy data VNDIRECT qua REST, ghi

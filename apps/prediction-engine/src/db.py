@@ -227,6 +227,64 @@ def insert_model_params_history(row: dict[str, Any]) -> Optional[int]:
         return None
 
 
+def insert_ai_signal(row: dict[str, Any]) -> Optional[int]:
+    """
+    Ghi 1 tin hieu AI (DeepSeek, xem ai_advisor.py) vao bang `ai_signals` —
+    audit trail RIENG voi `predictions`/`accuracy_log`, de sau nay co the
+    danh gia AI co thuc su cai thien accuracy hay khong (so sanh accuracy_log
+    cua cac prediction co model_version chua "+deepseek" vs khong, xem
+    infra/db/migrations/006_ai_signals.sql).
+
+    Args:
+        row: dict can co cac key:
+            prediction_id (id cua ban ghi trong bang `predictions` tuong ung,
+                co the None neu insert_prediction that bai truoc do),
+            symbol, interval, direction ("up"|"down"|"flat"),
+            predicted_change_pct, ai_confidence, blended (bool — co duoc
+            dung de blend vao prediction cuoi cung hay chi ghi lai de tham
+            khao), reasoning (str | None)
+
+    Returns:
+        int | None: id cua ban ghi vua insert, hoac None neu that bai. LOI O
+        DAY KHONG duoc anh huong luong du doan chinh (giong tinh than
+        insert_accuracy/insert_prediction o tren) — day chi la du lieu audit.
+    """
+    query = """
+        INSERT INTO ai_signals (
+            prediction_id, symbol, interval, direction,
+            predicted_change_pct, ai_confidence, blended, reasoning
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id;
+    """
+    values = (
+        row.get("prediction_id"),
+        row["symbol"],
+        row["interval"],
+        row["direction"],
+        row.get("predicted_change_pct"),
+        row.get("ai_confidence"),
+        row.get("blended", True),
+        row.get("reasoning"),
+    )
+
+    try:
+        with _lock:
+            conn = get_connection()
+            with conn.cursor() as cur:
+                cur.execute(query, values)
+                result = cur.fetchone()
+                return int(result[0]) if result else None
+    except Exception as exc:  # noqa: BLE001 - du lieu audit, khong duoc lam chet service
+        logger.error(
+            "[db] Loi khi ghi ai_signals vao DB (%s %s): %s",
+            row.get("symbol"),
+            row.get("interval"),
+            exc,
+        )
+        return None
+
+
 def get_tracked_pairs() -> list[dict[str, str]]:
     """
     Doc danh sach cap symbol/interval dang active tu bang tracked_pairs

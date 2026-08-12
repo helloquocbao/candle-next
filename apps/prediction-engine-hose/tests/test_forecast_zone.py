@@ -42,23 +42,23 @@ def test_produces_n_predictions():
     assert zone["ref_close"] == 100.0
 
 
-def test_all_steps_within_funnel():
-    zone = build_forecast_zone(_uptrend_history(), n_steps=5)
+def test_predictions_not_clamped_to_funnel():
+    # Xác nhận build_forecast_zone không còn áp phễu ±7%/phiên: với drift đủ
+    # lớn, các bước sau phải được PHÉP vượt biên phễu cũ (nếu ATR/drift đẩy
+    # ra ngoài), khác với hành vi cũ (luôn bị clamp vào funnel_bounds).
+    zone = build_forecast_zone(_uptrend_history(step=0.20), n_steps=5)
     ref = zone["ref_close"]
-    for row in zone["predictions"]:
-        floor, ceiling = funnel_bounds(ref, row["step"])
-        # Cho sai số số học nhỏ.
-        assert row["predicted_high"] <= ceiling + 1e-6
-        assert row["predicted_low"] >= floor - 1e-6
-        assert row["predicted_low"] <= row["predicted_high"]
+    old_ceiling_step5, _ = funnel_bounds(ref, 5)
+    assert zone["predictions"][-1]["predicted_high"] > old_ceiling_step5
 
 
-def test_funnel_widens_over_steps():
+def test_bands_widen_over_steps():
     zone = build_forecast_zone(_uptrend_history(), n_steps=5)
     p = zone["predictions"]
-    # Trần của bước sau cao hơn bước trước (phễu nở).
-    assert p[-1]["ceiling"] > p[0]["ceiling"]
-    assert p[-1]["floor"] < p[0]["floor"]
+    # Dải bất định (high-low) nở dần theo bước do band_widen_per_step.
+    range_first = p[0]["predicted_high"] - p[0]["predicted_low"]
+    range_last = p[-1]["predicted_high"] - p[-1]["predicted_low"]
+    assert range_last > range_first
 
 
 def test_confidence_decays():
@@ -85,9 +85,9 @@ def test_target_dates_length_must_match():
         build_forecast_zone(_flat_history(100), n_steps=3, target_dates=[date(2026, 7, 10)])
 
 
-def test_upper_zone_never_exceeds_cumulative_limit():
-    # Xu hướng tăng cực mạnh -> vẫn phải bị phễu ±7%/phiên chặn.
+def test_upper_zone_can_exceed_hose_daily_limit_when_trend_is_strong():
+    # Vùng giá không còn bị phễu ±7%/phiên chặn — xu hướng tăng cực mạnh phải
+    # cho phép zone_upper_pct vượt xa mức lý thuyết cũ (1.07^5 - 1) ~ 40.25%.
     zone = build_forecast_zone(_uptrend_history(step=0.20), n_steps=5)
-    # Sau 5 phiên, trần lũy tiến = (1.07^5 - 1) ~ 40.25%.
-    max_theoretical = (1.07 ** 5 - 1) * 100
-    assert zone["zone_upper_pct"] <= max_theoretical + 1e-6
+    old_funnel_theoretical_max = (1.07 ** 5 - 1) * 100
+    assert zone["zone_upper_pct"] > old_funnel_theoretical_max

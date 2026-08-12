@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
   const limit = Math.min(rawLimit || DEFAULT_LIMIT, MAX_LIMIT);
 
   try {
-    const result = await pool.query(
+    let result = await pool.query(
       `SELECT symbol, interval, open_time, open, high, low, close, volume, close_time
        FROM klines
        WHERE symbol = $1 AND interval = $2
@@ -40,6 +40,28 @@ router.get('/', async (req, res) => {
        LIMIT $3`,
       [symbol, interval, limit]
     );
+
+    if (result.rows.length === 0 && (interval === '1w' || interval === '1M')) {
+      const truncUnit = interval === '1w' ? 'week' : 'month';
+      result = await pool.query(
+        `SELECT 
+           $1::text AS symbol,
+           $2::text AS interval,
+           date_trunc($3, open_time) AS open_time,
+           (array_agg(open ORDER BY open_time ASC))[1] AS open,
+           MAX(high) AS high,
+           MIN(low) AS low,
+           (array_agg(close ORDER BY open_time DESC))[1] AS close,
+           SUM(volume) AS volume,
+           date_trunc($3, open_time) AS close_time
+         FROM klines
+         WHERE symbol = $1 AND interval = '1d'
+         GROUP BY date_trunc($3, open_time)
+         ORDER BY open_time DESC
+         LIMIT $4`,
+        [symbol, interval, truncUnit, limit]
+      );
+    }
 
     return res.json(result.rows);
   } catch (err) {

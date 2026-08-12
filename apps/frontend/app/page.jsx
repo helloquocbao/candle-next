@@ -1,13 +1,13 @@
 import SiteFooter from "../components/SiteFooter";
 
-// Landing page (/) — server component, tĩnh (tốt cho SEO/quảng cáo).
+// Landing page (/) — server component, tĩnh (tốt cho SEO).
 export default function LandingPage() {
   return (
     <div id="app" className="landing">
       <header className="site-header landing-header">
         <a className="brand" href="/">
-          <span className="brand-mark">Cp</span>
-          <span>CryptoPredict</span>
+          <span className="brand-mark">Hp</span>
+          <span>HosePredict</span>
         </a>
         <nav className="main-nav" aria-label="Điều hướng chính">
           <a href="#features">Tính năng</a>
@@ -22,14 +22,14 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="hero">
         <div className="hero__content">
-          <span className="eyebrow">Nền tảng phân tích crypto &amp; chứng khoán</span>
+          <span className="eyebrow">Nền tảng phân tích chứng khoán</span>
           <h1 className="hero__title">
             Dự đoán xu hướng thị trường<br />
             với <span className="grad-text">vùng nến AI</span> theo thời gian thực
           </h1>
           <p className="hero__subtitle">
-            Theo dõi giá crypto và cổ phiếu HOSE real-time. Thuật toán tự học dựng dải
-            giá dự đoán cho các nến kế tiếp, kèm chỉ số độ chính xác minh bạch — tất cả
+            Theo dõi cổ phiếu HOSE. Thuật toán tự học dựng dải
+            giá dự đoán cho các phiên kế tiếp, kèm chỉ số độ chính xác minh bạch — tất cả
             trong một biểu đồ.
           </p>
           <div className="hero__cta">
@@ -39,14 +39,14 @@ export default function LandingPage() {
           <ul className="hero__points">
             <li>✓ Không cần đăng ký</li>
             <li>✓ Miễn phí</li>
-            <li>✓ Crypto &amp; HOSE</li>
+            <li>✓ Cổ phiếu HOSE</li>
           </ul>
         </div>
 
         <div className="hero__panel" aria-hidden="true">
           <div className="panel-head">
-            <span className="panel-pair"><span className="dot" /> BTC / USDT</span>
-            <span className="panel-tf">1m · Live</span>
+            <span className="panel-pair"><span className="dot" /> FPT</span>
+            <span className="panel-tf">1D · Daily</span>
           </div>
           <div className="panel-chart">
             <svg viewBox="0 0 480 260" preserveAspectRatio="none" role="img">
@@ -100,12 +100,10 @@ export default function LandingPage() {
 
       {/* Trust */}
       <section className="logos">
-        <span className="logos__label">Nguồn dữ liệu real-time từ</span>
+        <span className="logos__label">Nguồn dữ liệu uy tín từ</span>
         <div className="logos__row">
-          <span className="logo-pill">Binance</span>
-          <span className="logo-pill">OKX</span>
-          <span className="logo-pill">Bybit</span>
           <span className="logo-pill">HOSE</span>
+          <span className="logo-pill">Vnstock</span>
         </div>
       </section>
 
@@ -147,8 +145,8 @@ export default function LandingPage() {
             <span className="feature__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3c2.5 2.4 3.9 5.6 3.9 9s-1.4 6.6-3.9 9c-2.5-2.4-3.9-5.6-3.9-9S9.5 5.4 12 3z" /></svg>
             </span>
-            <h3>Crypto &amp; Chứng khoán VN</h3>
-            <p>Chuyển đổi giữa thị trường crypto (Binance/OKX/Bybit) và cổ phiếu HOSE.</p>
+            <h3>Chứng khoán Việt Nam</h3>
+            <p>Dự đoán cho các mã cổ phiếu nổi bật nhất trên sàn HOSE.</p>
           </article>
           <article className="feature">
             <span className="feature__icon">
@@ -185,9 +183,9 @@ export default function LandingPage() {
 
       {/* Metrics */}
       <section className="metrics">
-        <div className="metric"><span className="metric__num">4+</span><span className="metric__label">Nguồn dữ liệu</span></div>
-        <div className="metric"><span className="metric__num">24/7</span><span className="metric__label">Real-time</span></div>
-        <div className="metric"><span className="metric__num">2</span><span className="metric__label">Thị trường</span></div>
+        <div className="metric"><span className="metric__num">2+</span><span className="metric__label">Nguồn dữ liệu</span></div>
+        <div className="metric"><span className="metric__num">Daily</span><span className="metric__label">EOD Update</span></div>
+        <div className="metric"><span className="metric__num">HOSE</span><span className="metric__label">Thị trường chính</span></div>
         <div className="metric"><span className="metric__num">0đ</span><span className="metric__label">Miễn phí</span></div>
       </section>
 
@@ -197,8 +195,8 @@ export default function LandingPage() {
         <h2 className="section__title">Câu hỏi thường gặp</h2>
         <div className="faq">
           <details className="faq__item">
-            <summary>CryptoPredict có miễn phí không?</summary>
-            <p>Có. Miễn phí hoàn toàn, không cần đăng ký. Duy trì qua quảng cáo và đóng góp tự nguyện.</p>
+            <summary>HosePredict có miễn phí không?</summary>
+            <p>Có. Miễn phí hoàn toàn, không cần đăng ký. Duy trì qua đóng góp tự nguyện.</p>
           </details>
           <details className="faq__item">
             <summary>Dự đoán có phải lời khuyên đầu tư không?</summary>
@@ -206,7 +204,7 @@ export default function LandingPage() {
           </details>
           <details className="faq__item">
             <summary>Dữ liệu lấy từ đâu?</summary>
-            <p>Từ API công khai của Binance, OKX, Bybit (crypto) và VNDIRECT (HOSE), chỉ để hiển thị.</p>
+            <p>Dữ liệu được lấy từ nguồn Vnstock chính thức (HOSE), phục vụ cho mục đích hiển thị tham khảo.</p>
           </details>
           <details className="faq__item">
             <summary>Độ chính xác của dự đoán ra sao?</summary>

@@ -271,48 +271,6 @@ a {
 }
 
 /* ==========================================================================
-   Ad slots — placeholder rõ ràng, chưa gắn ad network thật (xem
-   project_overview.md mục 5.A: Coinzilla/Bitmedia/A-Ads).
-   ========================================================================== */
-.ad-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin: 0 auto;
-  border: 1px dashed var(--border-color);
-  border-radius: 8px;
-  background-color: var(--surface-alt);
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.ad-slot__label {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 10px;
-  opacity: 0.8;
-}
-
-.ad-slot__size {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.6;
-}
-
-.ad-slot--rectangle {
-  width: 100%;
-  max-width: 300px;
-  height: 250px;
-}
-
-.ad-slot--footer {
-  width: 100%;
-  max-width: 468px;
-  height: 60px;
-}
-
-/* ==========================================================================
    Layout chính: cột chart (~genuine main) + sidebar widget
    ========================================================================== */
 .portal-layout {
@@ -1258,3 +1216,96 @@ a {
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   Simulation Panel Styles
+   ========================================================================== */
+.simulation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sim-control {
+  display: flex;
+  align-items: center;
+}
+
+.sim-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.sim-checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.sim-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sim-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.sim-value {
+  font-weight: 700;
+  color: var(--accent-color-strong);
+}
+
+.sim-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--surface-alt);
+  accent-color: var(--accent-color);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+.sim-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.sim-slider::-webkit-slider-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -5px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s ease;
+}
+
+.sim-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+

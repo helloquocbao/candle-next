@@ -10,3 +10,6 @@ pandas==2.2.3
 # lightgbm: model ML thay the baseline EMA (xem models/lightgbm_model.py).
 # CPU-only, khong can GPU — phu hop gioi han tai nguyen container hien tai.
 lightgbm==4.5.0
+# requests: goi DeepSeek Chat API (ensemble AI, xem ai_advisor.py). Chi duoc
+# goi khi DEEPSEEK_ENABLED=true, mac dinh tat -> khong anh huong runtime hien co.
+requests==2.32.3

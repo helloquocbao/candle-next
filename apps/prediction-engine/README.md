@@ -78,6 +78,42 @@ mà là nâng cấp lên Giai đoạn 3 của roadmap (`project_technical_spec.m
 liệu training, thay đổi pipeline) nên cần được xác nhận với chủ dự án trước
 khi triển khai, không tự động thực hiện trong vòng lặp audit/backtest này.
 
+## Ensemble AI (DeepSeek)
+
+`src/ai_advisor.py` — tín hiệu BỔ SUNG (ensemble) từ DeepSeek Chat API kết
+hợp với baseline/LightGBM+GA, KHÔNG thay thế. Chỉ áp dụng cho bước **t+1**
+(bước duy nhất được theo dõi accuracy, xem ghi chú `PREDICTION_HORIZON`
+trong `main.py`) — các bước t+2..t+N vẫn thuần định lượng như trước.
+
+Cách hoạt động: mỗi `AI_REFRESH_EVERY_N_CANDLES` nến đóng (mặc định `3`, nên
+tăng lên với interval ngắn như `1m` để giới hạn chi phí/API rate limit), gọi
+DeepSeek với giá đóng cửa gần đây + dự đoán của model định lượng, nhận về
+`{direction, predicted_change_pct, confidence, reasoning}`, rồi blend theo
+trọng số `DEEPSEEK_WEIGHT` (mặc định `0.35` — model định lượng vẫn là tín
+hiệu chính). Nếu 2 nguồn **bất đồng chiều**, confidence cuối cùng bị nhân
+thêm `DEEPSEEK_DISAGREEMENT_PENALTY` (mặc định `0.5`) để phản ánh đúng mức
+độ không chắc chắn của ensemble.
+
+**Mặc định TẮT** (`DEEPSEEK_ENABLED=false`) — bật bằng cách set
+`DEEPSEEK_ENABLED=true` và `DEEPSEEK_API_KEY` (xem `.env.example`). Thiếu
+API key dù bật cờ sẽ tự động tắt lại + log warning, không crash. Mọi lỗi
+mạng/timeout/JSON không parse được đều fallback về đúng tín hiệu định lượng
+gốc — không bao giờ chặn luồng dự đoán real-time vì 1 dịch vụ AI bên ngoài.
+
+**Audit trail**: mỗi tín hiệu AI được blend đều ghi vào bảng `ai_signals`
+(`infra/db/migrations/006_ai_signals.sql`), và `model_version` của bước t+1
+được gắn thêm hậu tố `+deepseek` (vd `baseline-ema-v1+deepseek`). Điều này
+cho phép sau này lọc `accuracy_log` theo `model_version` để so sánh khách
+quan: ensemble có thực sự cải thiện direction accuracy so với baseline/GA
+đơn thuần hay không, TRƯỚC KHI tăng `DEEPSEEK_WEIGHT` hay coi đây là giải
+pháp cho vấn đề ~50% direction accuracy đã nêu ở trên — bản thân việc thêm 1
+LLM chat vào ensemble KHÔNG tự động đảm bảo có edge thực sự, cần đo lại y hệt
+cách baseline/GA đã được đo (bảng backtest ở mục "Generalization" phía trên).
+
+**Độ trễ**: gọi API đồng bộ trên thread xử lý của từng cặp (`_run_pair`),
+timeout mặc định `DEEPSEEK_TIMEOUT_SEC=8`s — với interval `1m`, cân nhắc kỹ
+`AI_REFRESH_EVERY_N_CANDLES` để tránh dồn ứ message Redis đang chờ xử lý.
+
 ## Chạy local
 
 1. Cài dependency:
